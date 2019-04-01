@@ -8,72 +8,67 @@ Use opencv to control the camera and capture the image.
 2. Image is streamed to the website for visualization
 """
 
-from flask import Flask, render_template, Response
 import cv2
 import numpy as np
-import imutils
+import time
 
 class VideoCamera:
     def __init__(self):
-        self.color_lower = np.array([200, 0, 0])   #lower color raange
-        self.color_upper = np.array([255, 200, 200])  #upper color range
+        self.lower_color = np.array([125, 43, 46])  # in hsv. red 0, blue 100, purple 125
+        self.upper_color = np.array([150, 255, 255])  # in hsv. red 10, blue 124, purple 150
         # 通过opencv获取实时视频流
         self.video = cv2.VideoCapture(0)
-
+        # self.video.set(cv2.CAP_PROP_FPS, 15)
+        # self.video.set(cv2.CAP_PROP_FRAME_WIDTH, 400)
+        # self.video.set(cv2.CAP_PROP_FRAME_HEIGHT, 300)
     def __del__(self):
         self.video.release()
 
     def get_frame(self):
+        time_start = time.time()
         success, frame = self.video.read()
-        mask = cv2.inRange(frame, self.color_lower, self.color_upper)
-        cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        cnts = cnts[0] if imutils.is_cv2() else cnts[1]
-        center = None
-        if len(cnts) > 4:
-            c = max(cnts, key=cv2.contourArea)
-            ((x,y), radius) = cv2.minEnclosingCircle(c)
-            M = cv2.moments(c)
-            if M['m00'] == 0:
-                M['m00'] = 1e-5
-            center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-
-            if radius > 10:
-                cv2.circle(frame, (int(x), int(y)), int(radius), (0,255,255),2)
-                cv2.circle(frame, center, 5, (0,0,255), -1)
-                x, y = int(x), int(y)
-                print(x, y)
-        else:
-            return
-        output = cv2.bitwise_and(frame, frame, mask = mask)
-        # cv2.imshow("frame", np.hstack([frame, output]))
-
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        mask_hsv = cv2.inRange(hsv, self.lower_color, self.upper_color)
+        element = cv2.getStructuringElement(cv2.MORPH_ERODE, (5, 5))
+        mask_hsv = cv2.erode(mask_hsv, element, iterations=2)
+        mask_component = np.zeros_like(mask_hsv, dtype=np.uint8)
+        circles = None
+        confidence = []
+        num_label, label_img, stats, centroids = cv2.connectedComponentsWithStats(mask_hsv, connectivity=4)
+        # print('Time to find connected part', time.time() - time_start)
+        for (label, stat, centroid) in zip(range(0, num_label + 1), stats, centroids):
+            area_component = stat[cv2.CC_STAT_AREA]
+            if area_component < 300 or area_component > 100000 or label == 0:
+                continue
+            else:
+                component = np.zeros_like(mask_hsv, dtype=np.uint8)
+                component[label_img == label] = 1
+                image, contours, hierarchy = cv2.findContours(component.copy(), mode=cv2.RETR_EXTERNAL,
+                                                              method=cv2.CHAIN_APPROX_SIMPLE)
+                x_centroid, y_centroid = centroid
+                (x_enclose, y_enclose), r_enclose = cv2.minEnclosingCircle(contours[0])
+                area_enclose = int(np.pi * r_enclose * r_enclose)
+                detected_circle = np.array([int(x_enclose), int(y_enclose), int(r_enclose)])
+                circles = np.vstack([circles, detected_circle]) if circles is not None else [detected_circle]
+                print(area_enclose, area_component)
+                if np.sqrt((x_centroid - x_enclose) ** 2 + (y_centroid - y_enclose) ** 2) < 100:
+                    confidence.append(np.abs((area_component - area_enclose) / area_component) )
+                else:
+                    confidence.append(None)
+                mask_component = mask_component + component
+        # print('Time to find circles', time.time() - time_start)
+        if circles is not None:
+            if len(set(confidence)) >= 1 and set(confidence) != {None}:
+                idx = confidence.index(min(confidence))
+                c = circles[idx]
+                cv2.circle(frame, (c[0], c[1]), c[2], (0, 255, 255), 2)
+                cv2.circle(frame, (c[0], c[1]), 2, (0, 0, 255), 2)
+            else:
+                print('no circle shape detected')
+        cv2.putText(frame, "frame time: {0:.5f}".format(1/(time.time() - time_start)), (10, 40), 1, 1, (255, 255, 255))
+        mask_component = cv2.cvtColor(mask_component * 255, cv2.COLOR_GRAY2BGR)
+        frame = np.hstack([frame, mask_component])
         # 因为opencv读取的图片并非jpeg格式，因此要用motion JPEG模式需要先将图片转码成jpg格式图片
-        ret, jpeg = cv2.imencode('.jpg', output)
+        # print('Time to draw the most confident circle', time.time() - time_start)
+        ret, jpeg = cv2.imencode('.jpg', frame)
         return jpeg.tobytes()
-
-
-web = Flask(__name__)
-
-def gen(camera):
-    while True:
-        frame = camera.get_frame()
-        if frame:
-            # 使用generator函数输出视频流， 每次请求输出的content类型是image/jpeg
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
-        else:
-            print('no object found')
-
-@web.route('/')  # 主页
-def index():
-    # jinja2模板，具体格式保存在index.html文件中
-    return render_template('index.html')
-
-
-@web.route('/video_feed')  # 这个地址返回视频流响应
-def video_feed():
-    return Response(gen(VideoCamera()),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
-
-if __name__ == '__main__':
-    web.run(host='0.0.0.0', debug=True, port=5000)

@@ -2,10 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Video Streaming Demonstration</title>
+    <title>Ball tracing vehicle</title>
 </head>
 <body>
-    <h1>Video Streaming Demonstration</h1>
-    <img src="{{ url_for('video_feed') }}">
+    <h3>Ball tracing vehicle configuration panel</h3>
+    <h3><img src="{{ url_for('video_feed') }}" width="100%"></h3>
+    <form method="post" action="/streaming_switch">
+        <input name="switch"/>
+        <button id="id_streaming" type="submit">Start/Stop streaming</button>
+    </form>
+    <h3> Finish configuration and go for run! <a href="/live" class="button">RUN</a></h3>
   </body>
+  <script>
+  </script>
 </html>
