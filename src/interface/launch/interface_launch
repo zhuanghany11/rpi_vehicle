@@ -1,0 +1,7 @@
+<!-- Interface nodes launch file -->
+<launch>
+	<node pkg="interface" name="image_capture" type="image_capture"/>
+ 
+	<node pkg="interface" name="vehicle_controller" type="vehicle_controller"/>
+</launch>
+
