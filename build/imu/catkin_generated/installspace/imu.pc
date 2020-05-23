@@ -1,0 +1,8 @@
+prefix=/home/pi/Desktop/Robots/rpi_vehicle/install
+
+Name: imu
+Description: Description of imu
+Version: 1.0.0
+Cflags: -I${prefix}/include
+Libs: -L${prefix}/lib -lcomplementary_filter
+Requires: message_filters roscpp sensor_msgs std_msgs tf

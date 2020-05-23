@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>imu</name>
+  <version>1.0.0</version>
+  <description>The imu package. Read the MPU9250 data and filter it, then publish the reliable imu data</description>
+
+  <maintainer email="zhuanghany11@163.COM">zhy</maintainer>
+
+  <!-- One license tag required, multiple allowed, one license per tag -->
+  <!-- Commonly used license strings: -->
+  <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>cmake_modules</build_depend>
+  <depend>message_filters</depend>
+  <depend>roscpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>tf</depend>
+
+</package>

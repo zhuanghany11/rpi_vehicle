@@ -1,0 +1,8 @@
+prefix=/home/pi/Desktop/Robots/rpi_vehicle/devel
+
+Name: interface
+Description: Description of interface
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

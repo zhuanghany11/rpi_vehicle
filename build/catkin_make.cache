@@ -1,0 +1,2 @@
+common:imu:interface:server
+-DCATKIN_DEVEL_PREFIX=/home/pi/Desktop/Robots/rpi_vehicle/devel -DCMAKE_INSTALL_PREFIX=/home/pi/Desktop/Robots/rpi_vehicle/install -G Unix Makefiles

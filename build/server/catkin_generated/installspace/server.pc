@@ -1,0 +1,8 @@
+prefix=/home/pi/Desktop/Robots/rpi_vehicle/install
+
+Name: server
+Description: Description of server
+Version: 1.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
